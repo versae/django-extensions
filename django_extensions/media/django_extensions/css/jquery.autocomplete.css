@@ -41,3 +41,23 @@
     background-color: #999;
     color: white;
 }
+
+/*****************************************************************************
+ * ManyToManySearchInput
+ ****************************************************************************/
+
+.manytomany_searchinput img {
+    vertical-align: -1px;
+}
+
+.manytomany_searchinput li {
+    list-style: none;
+}
+
+.manytomany_searchinput li span {
+    margin: 0 0 0 4px;
+}
+
+.manytomany_searchinput span.item_id {
+    color: #999999;
+}

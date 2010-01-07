@@ -8,6 +8,9 @@
 #    to_string_function, Satchmo adaptation and some comments added by emes
 #    (Michal Salaban)
 #
+#    Improvements to ManyToManyField and generic AutocompleteAdmin written
+#    by Javier de la Rosa (versae@gmail.com)
+#
 import operator
 from django.http import HttpResponse, HttpResponseNotFound
 from django.contrib import admin
@@ -18,9 +21,11 @@ from django.utils.translation import ugettext as _
 from django.utils.text import get_text_list
 from django.utils.functional import update_wrapper
 
-from django_extensions.admin.widgets import ForeignKeySearchInput
+from django_extensions.admin.widgets import (ForeignKeySearchInput,
+                                             ManyToManySearchInput)
 
-class ForeignKeyAutocompleteAdmin(admin.ModelAdmin):
+
+class AutocompleteAdmin(admin.ModelAdmin):
     """Admin class for models using the autocomplete feature.
 
     There are two additional fields:
@@ -46,6 +51,7 @@ class ForeignKeyAutocompleteAdmin(admin.ModelAdmin):
         from django.conf.urls.defaults import patterns, url
 
         def wrap(view):
+
             def wrapper(*args, **kwargs):
                 return self.admin_site.admin_view(view)(*args, **kwargs)
             return update_wrapper(wrapper, view)
@@ -53,13 +59,13 @@ class ForeignKeyAutocompleteAdmin(admin.ModelAdmin):
         info = self.model._meta.app_label, self.model._meta.module_name
 
         urlpatterns = patterns('',
-            url(r'foreignkey_autocomplete/$',
-                wrap(self.foreignkey_autocomplete),
+            url(r'autocomplete/$',
+                wrap(self.autocomplete),
                 name='%s_%s_autocomplete' % info),
-        ) + super(ForeignKeyAutocompleteAdmin, self).get_urls()
+        ) + super(AutocompleteAdmin, self).get_urls()
         return urlpatterns
 
-    def foreignkey_autocomplete(self, request):
+    def autocomplete(self, request):
         """
         Searches in the fields of the given related model and returns the
         result as a simple string to be used by the jQuery Autocomplete plugin
@@ -74,6 +80,7 @@ class ForeignKeyAutocompleteAdmin(admin.ModelAdmin):
         except KeyError:
             to_string_function = lambda x: x.__unicode__()
         if search_fields and app_label and model_name and (query or object_pk):
+
             def construct_search(field_name):
                 # use different lookup methods depending on the notation
                 if field_name.startswith('^'):
@@ -84,6 +91,7 @@ class ForeignKeyAutocompleteAdmin(admin.ModelAdmin):
                     return "%s__search" % field_name[1:]
                 else:
                     return "%s__icontains" % field_name
+
             model = models.get_model(app_label, model_name)
             queryset = model._default_manager.all()
             data = ''
@@ -94,7 +102,8 @@ class ForeignKeyAutocompleteAdmin(admin.ModelAdmin):
                             for field_name in search_fields.split(',')]
                     other_qs = QuerySet(model)
                     other_qs.dup_select_related(queryset)
-                    other_qs = other_qs.filter(reduce(operator.or_, or_queries))
+                    other_qs = other_qs.filter(reduce(operator.or_,
+                                                      or_queries))
                     queryset = queryset & other_qs
                 data = ''.join([u'%s|%s\n' % (
                     to_string_function(f), f.pk) for f in queryset])
@@ -115,23 +124,77 @@ class ForeignKeyAutocompleteAdmin(admin.ModelAdmin):
                 'model_name': model_name,
                 'field_list': get_text_list(searchable_fields, _('and')),
             }
-            return _('Use the left field to do %(model_name)s lookups in the fields %(field_list)s.') % help_kwargs
+            return _('Use the left field to do %(model_name)s lookups in ' \
+                     'the fields %(field_list)s.') % help_kwargs
         return ''
+
+    def formfield_for_dbfield(self, db_field, **kwargs):
+        """
+        Overrides the default widget for Foreignkey and ManyToMany fields if
+        they are specified in the related_search_fields class attribute.
+        """
+        if (isinstance(db_field, (models.ForeignKey, models.ManyToManyField))
+            and db_field.name in self.related_search_fields):
+            model_name = db_field.rel.to._meta.object_name
+            help_text = self.get_help_text(db_field.name, model_name)
+            if kwargs.get('help_text'):
+                help_text = u'%s %s' % (kwargs['help_text'], help_text)
+            kwargs['help_text'] = help_text
+            widget_kwargs = {
+                'rel': db_field.rel,
+                'search_fields': self.related_search_fields[db_field.name],
+            }
+            if (isinstance(db_field, models.ForeignKey)):
+                kwargs['widget'] = ForeignKeySearchInput(**widget_kwargs)
+            elif (isinstance(db_field, models.ManyToManyField)):
+                kwargs['widget'] = ManyToManySearchInput(**widget_kwargs)
+        return super(AutocompleteAdmin,
+            self).formfield_for_dbfield(db_field, **kwargs)
+
+
+class ForeignKeyAutocompleteAdmin(AutocompleteAdmin):
 
     def formfield_for_dbfield(self, db_field, **kwargs):
         """
         Overrides the default widget for Foreignkey fields if they are
         specified in the related_search_fields class attribute.
         """
-        if (isinstance(db_field, models.ForeignKey) and
-            db_field.name in self.related_search_fields):
+        if (isinstance(db_field, models.ForeignKey)
+            and db_field.name in self.related_search_fields):
             model_name = db_field.rel.to._meta.object_name
             help_text = self.get_help_text(db_field.name, model_name)
             if kwargs.get('help_text'):
                 help_text = u'%s %s' % (kwargs['help_text'], help_text)
-            kwargs['widget'] = ForeignKeySearchInput(db_field.rel,
-                                    self.related_search_fields[db_field.name])
             kwargs['help_text'] = help_text
-        return super(ForeignKeyAutocompleteAdmin,
+            widget_kwargs = {
+                'rel': db_field.rel,
+                'search_fields': self.related_search_fields[db_field.name],
+            }
+            if (isinstance(db_field, models.ForeignKey)):
+                kwargs['widget'] = ForeignKeySearchInput(**widget_kwargs)
+        return super(AutocompleteAdmin,
             self).formfield_for_dbfield(db_field, **kwargs)
 
+
+class ManyToManyAutocompleteAdmin(AutocompleteAdmin):
+
+    def formfield_for_dbfield(self, db_field, **kwargs):
+        """
+        Overrides the default widget for ManyToMany fields if they are
+        specified in the related_search_fields class attribute.
+        """
+        if (isinstance(db_field, models.ManyToManyField)
+            and db_field.name in self.related_search_fields):
+            model_name = db_field.rel.to._meta.object_name
+            help_text = self.get_help_text(db_field.name, model_name)
+            if kwargs.get('help_text'):
+                help_text = u'%s %s' % (kwargs['help_text'], help_text)
+            kwargs['help_text'] = help_text
+            widget_kwargs = {
+                'rel': db_field.rel,
+                'search_fields': self.related_search_fields[db_field.name],
+            }
+            if (isinstance(db_field, models.ManyToManyField)):
+                kwargs['widget'] = ManyToManySearchInput(**widget_kwargs)
+        return super(AutocompleteAdmin,
+            self).formfield_for_dbfield(db_field, **kwargs)
