@@ -1,0 +1,142 @@
+{% load i18n %}
+<input type="text" id="lookup_{{ name }}" value="{{ label }}" style="display:none;" />
+<a href="{{ related_url }}{{ url }}" class="related-lookup" id="lookup_id_{{ name }}" onclick="return showRelatedObjectLookupPopup(this);" style="display:none;">
+  <img src="{{ admin_media_prefix }}img/admin/selector-search.gif" width="16" height="16" alt="{% trans "Lookup" %}" />
+</a>
+<input type="text" id="id_{{ name }}_raw" name="{{ name }}_raw" style="display:none;" class="vForeignKeyRawIdAdminField"/>
+<a id="add_to_list_{{ name }}" href="{{ related_url }}{{ url }}" class="related-lookup" style="display:none;">
+  <img src="{{ admin_media_prefix }}img/admin/selector_stacked-add.gif" width="16" height="16" alt="{% trans "Add to list" %}" />
+</a>
+<script type="text/javascript">
+$(document).ready(function() {
+    $("#lookup_{{ name }}").show();
+    $("#lookup_id_{{ name }}").show();
+    $("#id_{{ name }}_raw").show();
+    var addToListAnchor = $("#add_to_list_{{ name }}");
+    function reset() {
+        $('#id_{{ name }}_raw').val('');
+        $('#lookup_{{ name }}').val('');
+        addToListAnchor.hide();
+    };
+    function lookup(query) {
+        $.get('{{ search_path }}', {
+            'search_fields': '{{ search_fields }}',
+            'app_label': '{{ app_label }}',
+            'model_name': '{{ model_name }}',
+            'object_pk': query
+        }, function(data){
+            $('#lookup_{{ name }}').val(data);
+            {{ name }}_value = query;
+            if (data) {
+                addToListAnchor.show();
+            } else {
+                addToListAnchor.hide();
+            }
+        });
+    };
+    $('#id_{{ name }}_raw').bind(($.browser.opera ? "keypress" : "keyup"),
+        function(event) {
+            if ($(this).val()) {
+                if (event.keyCode == 27) {
+                    reset();
+                } else {
+                    lookup($(this).val());
+                };
+            };
+    });
+    $('#lookup_{{ name }}').autocomplete('{{ search_path }}', {
+        extraParams: {
+            'search_fields': '{{ search_fields }}',
+            'app_label': '{{ app_label }}',
+            'model_name': '{{ model_name }}'
+        }
+    }).result(function(event, data, formatted) {
+        if (data) {
+            $('#id_{{ name }}_raw').val(data[1]);
+            if (data[1]) {
+                addToListAnchor.show();
+            } else {
+                addToListAnchor.hide();
+            }
+        }
+    }).keyup(function(event){
+        if (event.keyCode == 27) {
+            reset();
+        };
+    });
+    var {{ name }}_value = $('#id_{{ name }}_raw').val();
+    function check() {
+        {{ name }}_check = $('#id_{{ name }}_raw').val();
+        if ({{ name }}_check) {
+            if ({{ name }}_check != {{ name }}_value) {
+                lookup({{ name }}_check);
+            }
+        }
+    }
+    function addRelation(rawId, text) {
+        var deleteImg = $("<img>");
+        deleteImg.attr("src", "{{ admin_media_prefix }}img/admin/icon_deletelink.gif");
+        deleteImg.click(removeFromListMiddleware((rawId).toString()));
+        var deleteAnchor = $("<a>");
+        deleteAnchor.attr("href", "javascript:void(0)");
+        deleteAnchor.append(deleteImg);
+        var rawIdSpan = $("<span>");
+        rawIdSpan.attr("class", "item_id_{{ name }}");
+        rawIdSpan.attr("class", "item_id");
+        rawIdSpan.html(rawId);
+        var txtSpan = $("<span>");
+        txtSpan.attr("class", "item_txt_{{ name }}");
+        txtSpan.attr("class", "item_txt");
+        txtSpan.html(text);
+        var item = $("<li>");
+        item.attr("class", "item_{{ name }}");
+        item.append(deleteAnchor);
+        item.append(txtSpan);
+        item.append(",");
+        item.append(rawIdSpan);
+        $("#list_{{ name }}").append(item);
+    }
+    function removeFromListMiddleware(rawId) {
+        return function removeFromList() {
+            var values = $('#id_{{ name }}').val() || [];
+            var position = values.indexOf(rawId);
+            if (position >= 0) {
+                values = values.slice(0, position).concat(values.slice(position+1));
+            }
+            $('#id_{{ name }}').val(values);
+            refreshRelations();
+            reset();
+            $("#lookup_{{ name }}").focus();
+        }
+    }
+    function addToList() {
+        var value = parseInt({{ name }}_value);
+        check();
+        if (value > 0) {
+            var values = $('#id_{{ name }}').val() || [];
+            if (values.indexOf({{ name }}_value) < 0) {
+                values.push({{ name }}_value);
+            }
+            $('#id_{{ name }}').val(values);
+            refreshRelations();
+            reset();
+            $("#lookup_{{ name }}").focus();
+        }
+        return false;
+    }
+    function refreshRelations() {
+        $("#list_{{ name }}").html('');
+        $('#id_{{ name }} :selected').each(function(i) {
+            addRelation($(this).val(), $(this).text());
+        });
+    }
+    addToListAnchor.click(addToList);
+    var ulList = $("<ul>");
+    ulList.attr("id", "list_{{ name }}");
+    ulList.addClass("manytomany_searchinput");
+    $('#id_{{ name }}').hide();
+    $("#add_id_{{ name }}").after(ulList);
+    refreshRelations();
+    timeout = window.setInterval(check, 300);
+});
+</script>
