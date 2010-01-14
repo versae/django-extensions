@@ -46,7 +46,13 @@
  * ManyToManySearchInput
  ****************************************************************************/
 
-.manytomany_searchinput img {
+.manytomany_searchinput,
+.add_manytomany_searchinput {
+    padding-top: 3px;
+}
+
+.manytomany_searchinput img,
+.add_manytomany_searchinput img {
     vertical-align: -1px;
 }
 
@@ -54,7 +60,8 @@
     list-style: none;
 }
 
-.manytomany_searchinput li span {
+.manytomany_searchinput li span,
+.add_manytomany_searchinput span {
     margin: 0 0 0 4px;
 }
 
