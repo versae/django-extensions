@@ -115,7 +115,15 @@ $(document).ready(function() {
             }
             {% endblock %}
         };
-    })
+    });
+    aLookup.focus(function() {
+        var returnedValue = selectId.val();
+        if (returnedValue) {
+            inputRawId.val(returnedValue);
+            check();
+            inputRawId.focus();
+        }
+    });
     function check() {
         var checkValue = inputRawId.val();
         if (checkValue) {
