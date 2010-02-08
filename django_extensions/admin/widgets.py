@@ -1,5 +1,6 @@
 from django import forms
 from django.conf import settings
+from django.core import urlresolvers
 from django.utils.safestring import mark_safe
 from django.utils.text import truncate_words
 from django.template.loader import render_to_string
@@ -31,7 +32,8 @@ class ForeignKeySearchInput(forms.Select):
         obj = self.rel.to._default_manager.get(**{key: value})
         return truncate_words(obj, 14)
 
-    def __init__(self, rel, search_fields, attrs=None):
+    def __init__(self, rel, search_fields, admin_site_name=None, attrs=None):
+        self.admin_site_name = admin_site_name
         self.search_fields = search_fields
         self.rel = rel
         super(ForeignKeySearchInput, self).__init__(attrs=attrs)
@@ -57,6 +59,14 @@ class ForeignKeySearchInput(forms.Select):
             label = self.label_for_value(value)
         else:
             label = u''
+        if self.admin_site_name:
+            admin_related_url = urlresolvers.reverse("%s:%s_%s_change" \
+                                                     % (self.admin_site_name,
+                                                        app_label,
+                                                        model_name),
+                                                     args=("[?]", ))
+        else:
+            admin_related_url = ""
         context = {
             'url': url,
             'related_url': related_url,
@@ -67,6 +77,7 @@ class ForeignKeySearchInput(forms.Select):
             'app_label': app_label,
             'label': label,
             'name': name,
+            'admin_related_url': admin_related_url,
         }
         output.append(render_to_string(self.widget_template or (
             'django_extensions/widgets/%s/%s/foreignkey_searchinput.html' \
@@ -113,7 +124,8 @@ class ManyToManySearchInput(forms.SelectMultiple):
             'django_extensions/js/jquery.autocomplete.js',
         )
 
-    def __init__(self, rel, search_fields, attrs=None):
+    def __init__(self, rel, search_fields, admin_site_name=None, attrs=None):
+        self.admin_site_name = admin_site_name
         self.search_fields = search_fields
         self.rel = rel
         super(ManyToManySearchInput, self).__init__(attrs=attrs)
@@ -143,6 +155,14 @@ class ManyToManySearchInput(forms.SelectMultiple):
             label = self.label_for_value(value)
         else:
             label = u''
+        if self.admin_site_name:
+            admin_related_url = urlresolvers.reverse("%s:%s_%s_change" \
+                                                     % (self.admin_site_name,
+                                                        app_label,
+                                                        model_name),
+                                                     args=("[?]", ))
+        else:
+            admin_related_url = ""
         context = {
             'url': url,
             'related_url': related_url,
@@ -153,6 +173,7 @@ class ManyToManySearchInput(forms.SelectMultiple):
             'app_label': app_label,
             'label': label,
             'name': name,
+            'admin_related_url': admin_related_url,
         }
         output.append(render_to_string(self.widget_template or (
             'django_extensions/widgets/%s/%s/manytomany_searchinput.html' \

@@ -143,6 +143,7 @@ class AutocompleteAdmin(admin.ModelAdmin):
             widget_kwargs = {
                 'rel': db_field.rel,
                 'search_fields': self.related_search_fields[db_field.name],
+                'admin_site_name': self.admin_site.app_name,
             }
             if (isinstance(db_field, models.ForeignKey)):
                 kwargs['widget'] = ForeignKeySearchInput(**widget_kwargs)
@@ -169,6 +170,7 @@ class ForeignKeyAutocompleteAdmin(AutocompleteAdmin):
             widget_kwargs = {
                 'rel': db_field.rel,
                 'search_fields': self.related_search_fields[db_field.name],
+                'admin_site_name': self.admin_site.app_name,
             }
             if (isinstance(db_field, models.ForeignKey)):
                 kwargs['widget'] = ForeignKeySearchInput(**widget_kwargs)
@@ -193,6 +195,7 @@ class ManyToManyAutocompleteAdmin(AutocompleteAdmin):
             widget_kwargs = {
                 'rel': db_field.rel,
                 'search_fields': self.related_search_fields[db_field.name],
+                'admin_site_name': self.admin_site.app_name,
             }
             if (isinstance(db_field, models.ManyToManyField)):
                 kwargs['widget'] = ManyToManySearchInput(**widget_kwargs)

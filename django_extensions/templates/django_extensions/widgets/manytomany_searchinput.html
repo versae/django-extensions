@@ -146,7 +146,7 @@ $(document).ready(function() {
         var spanTxt = $("<span>");
         spanTxt.attr("class", "item_txt_{{ name }}");
         spanTxt.attr("class", "item_txt");
-        spanTxt.html(text);
+        spanTxt.append(getAdminUrl(text, rawId));
         var liItem = $("<li>");
         liItem.attr("class", "item_{{ name }}");
         liItem.append(aDelete);
@@ -220,6 +220,21 @@ $(document).ready(function() {
         inputLookup.focus();
         pHelp.show();
         {% endblock %}
+    }
+    function getAdminUrl(text, rawId) {
+        var related_url = "{{ admin_related_url }}";
+        if (related_url) {
+            var url = related_url.replace("[?]", rawId);
+            var aTxt= $("<a>");
+            aTxt.attr("href", url);
+            aTxt.html(text);
+            aTxt.click(function() {
+                return showAddAnotherPopup(this);
+            });
+            return aTxt;
+        } else {
+            return document.createTextNode(text);
+        }
     }
 });
 </script>
