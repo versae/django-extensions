@@ -25,6 +25,7 @@ class ForeignKeySearchInput(forms.Select):
             'django_extensions/js/jquery.bgiframe.min.js',
             'django_extensions/js/jquery.ajaxQueue.js',
             'django_extensions/js/jquery.autocomplete.js',
+            'django_extensions/js/RelatedObjectLookups.js',
         )
 
     def label_for_value(self, value):
@@ -122,6 +123,7 @@ class ManyToManySearchInput(forms.SelectMultiple):
             'django_extensions/js/jquery.bgiframe.min.js',
             'django_extensions/js/jquery.ajaxQueue.js',
             'django_extensions/js/jquery.autocomplete.js',
+            'django_extensions/js/RelatedObjectLookups.js',
         )
 
     def __init__(self, rel, search_fields, admin_site_name=None, attrs=None):

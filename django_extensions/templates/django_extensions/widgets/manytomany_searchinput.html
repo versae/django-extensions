@@ -22,6 +22,7 @@ $(document).ready(function() {
     var aAddId = $("#add_id_{{ name }}");
     var pHelp = pAutocomplete.parent().children("p:last-child");
     selectId.hide();
+    selectId.addClass("vAutocompleteWidget");
     {% block add_item_link %}
     // DOM objects to add items to ManyToMany field
     var imgAddItem = $("<img>");
@@ -115,14 +116,6 @@ $(document).ready(function() {
             }
             {% endblock %}
         };
-    });
-    aLookup.focus(function() {
-        var returnedValue = selectId.val();
-        if (returnedValue) {
-            inputRawId.val(returnedValue);
-            check();
-            inputRawId.focus();
-        }
     });
     function check() {
         var checkValue = inputRawId.val();
